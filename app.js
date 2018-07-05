@@ -3,10 +3,6 @@ const {
     gql
 } = require('apollo-server');
 
-// This is a (sample) collection of books we'll be able to query
-// the GraphQL server for.  A more complete example might fetch
-// from an existing data source like a REST API or database.
-
 const playlist = [{
         id: 11,
         title: 'I\'m cool',
@@ -16,7 +12,7 @@ const playlist = [{
     {
         id: 12,
         title: 'I wanna cry',
-        genre: 'Hard Rock',
+        genre: 'Blues',
         tracks: []
     }, {
         id: 13,
@@ -83,19 +79,11 @@ const track = [{
     },
 ];
 
+playlist.forEach((item, index) => {
+    item.tracks.push(track[index * 2]);
+    item.tracks.push(track[(index * 2) + 1]);
+});
 
-
-playlist[0].tracks.push(track[0]);
-playlist[0].tracks.push(track[1]);
-playlist[1].tracks.push(track[2]);
-playlist[1].tracks.push(track[3]);
-playlist[2].tracks.push(track[4]);
-playlist[2].tracks.push(track[5]);
-playlist[3].tracks.push(track[6]);
-playlist[3].tracks.push(track[7]);
-
-// Type definitions define the "shape" of your data and specify
-// which ways the data can be fetched from the GraphQL server.
 const typeDefs = gql `
   # Comments in GraphQL are defined with the hash (#) symbol.
   type Playlist {
@@ -113,8 +101,12 @@ const typeDefs = gql `
     playlist: Playlist
   }
 
-  # The "Query" type is the root of all GraphQL queries.
-  # (A "Mutation" type will be covered later on.)
+  enum Genre {
+    Blues
+    Jazz
+    Rock
+  }
+
   type Query {
     getAllPlaylists: [Playlist]
     getAllTracks: [Track]
@@ -124,19 +116,17 @@ const typeDefs = gql `
   }
 
   type Mutation {
-    createPlaylist(id: Int, title:String, genre: String ): Playlist
-    createTrack(id: Int, name: String, band: String, stars: Int): Track
+    createPlaylist(id: Int!, title:String!, genre: Genre! ): Playlist
+    createTrack(id: Int!, name: String!, band: String!, stars: Int!, playlistId: Int!): Track
   }
 
 `;
 
-// Resolvers define the technique for fetching the types in the
-// schema.  We'll retrieve books from the "books" array above.
 const resolvers = {
     Query: {
         getAllPlaylists: () => playlist,
         getAllTracks: () => track,
-        getPlaylist: (obj, args, context) => {
+        getPlaylist: (obj, args) => {
             const playlistById = playlist.find(playl => playl.id === args.id);
             if (playlistById === undefined)
                 return null;
@@ -144,7 +134,7 @@ const resolvers = {
                 return playlistById;
             }
         },
-        getPlaylistWithLimit: (obj, args, context) => {
+        getPlaylistWithLimit: (obj, args) => {
             limit = [];
             playlist.forEach((item, index) => {
                 if (index < args.limit) {
@@ -153,28 +143,53 @@ const resolvers = {
             });
             return limit;
         },
-        getAllTracksByPlaylistId: (obj, args, context) => {
+        getAllTracksByPlaylistId: (obj, args) => {
             const tracksFromPlaylist = playlist.find(playl => playl.id === args.id);
             if (tracksFromPlaylist === undefined)
                 return null;
             else {
                 return tracksFromPlaylist.tracks;
             }
-        },
+        }
     },
+    Mutation: {
+        createPlaylist: (obj, args) => {
+            const newPlaylist = {};
+            newPlaylist.id = args.id;
+            newPlaylist.title = args.title;
+            newPlaylist.genre = args.genre;
+            newPlaylist.tracks = [];
+            playlist.push(newPlaylist);
+            return newPlaylist;
+        },
+        createTrack: (obj, args) => {
+            const newTrack = {};
+            let p = null;
+            newTrack.id = args.id;
+            newTrack.name = args.name;
+            newTrack.band = args.band;
+            newTrack.stars = args.stars;
+            p = playlist.find(playl => playl.id === args.playlistId);
+            if (p !== null) {
+                newTrack.playlist = p;
+                p.tracks.push(newTrack);
+            } else {
+                newTrack.playlist = playlist[0];
+                playlist[0].tracks.push(newTrack);
+            }
+            track.push(newTrack);
+            return newTrack;
+        }
+
+    }
 
 };
 
-// In the most basic sense, the ApolloServer can be started
-// by passing type definitions (typeDefs) and the resolvers
-// responsible for fetching the data for those types.
 const server = new ApolloServer({
     typeDefs,
     resolvers
 });
 
-// This `listen` method launches a web-server.  Existing apps
-// can utilize middleware options, which we'll discuss later.
 server.listen().then(({
     url
 }) => {
