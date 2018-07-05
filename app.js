@@ -107,6 +107,20 @@ const typeDefs = gql `
     Rock
   }
 
+  input playlistInput{
+    id: Int!
+    title:String!
+    genre: Genre!
+  }
+
+  input trackInput{
+    id: Int!
+    name: String!
+    band: String!
+    stars: Int!
+    playlistId: Int!
+  }
+
   type Query {
     getAllPlaylists: [Playlist]
     getAllTracks: [Track]
@@ -116,8 +130,8 @@ const typeDefs = gql `
   }
 
   type Mutation {
-    createPlaylist(id: Int!, title:String!, genre: Genre! ): Playlist
-    createTrack(id: Int!, name: String!, band: String!, stars: Int!, playlistId: Int!): Track
+    createPlaylist(input: playlistInput): Playlist
+    createTrack(input: trackInput): Track
   }
 
 `;
@@ -155,9 +169,9 @@ const resolvers = {
     Mutation: {
         createPlaylist: (obj, args) => {
             const newPlaylist = {};
-            newPlaylist.id = args.id;
-            newPlaylist.title = args.title;
-            newPlaylist.genre = args.genre;
+            newPlaylist.id = args.input.id;
+            newPlaylist.title = args.input.title;
+            newPlaylist.genre = args.input.genre;
             newPlaylist.tracks = [];
             playlist.push(newPlaylist);
             return newPlaylist;
@@ -165,11 +179,11 @@ const resolvers = {
         createTrack: (obj, args) => {
             const newTrack = {};
             let p = null;
-            newTrack.id = args.id;
-            newTrack.name = args.name;
-            newTrack.band = args.band;
-            newTrack.stars = args.stars;
-            p = playlist.find(playl => playl.id === args.playlistId);
+            newTrack.id = args.input.id;
+            newTrack.name = args.input.name;
+            newTrack.band = args.input.band;
+            newTrack.stars = args.input.stars;
+            p = playlist.find(playl => playl.id === args.input.playlistId);
             if (p !== null) {
                 newTrack.playlist = p;
                 p.tracks.push(newTrack);
