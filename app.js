@@ -124,7 +124,8 @@ const typeDefs = gql `
   type Query {
     getAllPlaylists: [Playlist]
     getAllTracks: [Track]
-    getPlaylist(id: Int!): Playlist
+    getPlaylistById(id: Int!): Playlist
+    getTrackById(id: Int!): Track
     getPlaylistWithLimit(limit: Int!): [Playlist]
     getAllTracksByPlaylistId(id: Int!): [Track]
   }
@@ -140,12 +141,20 @@ const resolvers = {
     Query: {
         getAllPlaylists: () => playlist,
         getAllTracks: () => track,
-        getPlaylist: (obj, args) => {
+        getPlaylistById: (obj, args) => {
             const playlistById = playlist.find(playl => playl.id === args.id);
             if (playlistById === undefined)
                 return null;
             else {
                 return playlistById;
+            }
+        },
+        getTrackById: (obj, args) => {
+            const trackById = track.find(item => item.id === args.id);
+            if (trackById === undefined)
+                return null;
+            else {
+                return trackById;
             }
         },
         getPlaylistWithLimit: (obj, args) => {
